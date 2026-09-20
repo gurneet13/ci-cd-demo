@@ -27,9 +27,27 @@ pipeline {
             }
         }
 
-        stage('Run S3 test') {
+        stage('Smoke test') {
             steps {
-                sh 'node index.js'
+                sh '''
+                node index.js &
+                APP_PID=$!
+
+                cleanup() { kill $APP_PID 2>/dev/null || true; }
+                trap cleanup EXIT
+
+                for i in $(seq 1 30); do
+                    if curl -sf http://localhost:8080/healthz >/dev/null && \
+                       curl -sf http://localhost:8080/ready >/dev/null; then
+                        echo "App is healthy and ready"
+                        exit 0
+                    fi
+                    sleep 1
+                done
+
+                echo "App did not become healthy/ready in time"
+                exit 1
+                '''
             }
         }
 

@@ -2,7 +2,9 @@
   "name": "nodecicd",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -10,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1135.0",
-    "dotenv": "^18.0.0"
+    "dotenv": "^18.0.0",
+    "express": "^4.22.3"
   }
 }
