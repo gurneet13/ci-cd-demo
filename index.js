@@ -22,6 +22,7 @@ const KEY = "hello.txt";
 
 async function main() {
   try {
+    console.log(`Creating bucket "${BUCKET}"...`);
     await s3.send(new CreateBucketCommand({ Bucket: BUCKET }));
     console.log(`Bucket "${BUCKET}" created`);
   } catch (err) {
