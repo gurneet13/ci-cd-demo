@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_ENDPOINT_URL      = 'http://floci:4566'
+        AWS_REGION            = 'us-east-1'
+        AWS_ACCESS_KEY_ID     = 'test'
+        AWS_SECRET_ACCESS_KEY = 'test'
+        S3_BUCKET             = 'my-test-bucket'
+        EKS_CLUSTER_NAME      = 'my-cluster'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install deps') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Run S3 test') {
+            steps {
+                sh 'node s3-test.js'
+            }
+        }
+
+        stage('Create/verify EKS cluster') {
+            steps {
+                sh '''
+                  aws --endpoint-url=$AWS_ENDPOINT_URL eks describe-cluster \
+                    --name $EKS_CLUSTER_NAME >/dev/null 2>&1 || \
+                  aws --endpoint-url=$AWS_ENDPOINT_URL eks create-cluster \
+                    --name $EKS_CLUSTER_NAME \
+                    --role-arn arn:aws:iam::000000000000:role/eks-role \
+                    --resources-vpc-config subnetIds=subnet-1,subnet-2
+
+                  until aws --endpoint-url=$AWS_ENDPOINT_URL eks describe-cluster \
+                    --name $EKS_CLUSTER_NAME --query "cluster.status" --output text | grep -q ACTIVE; do
+                    echo "waiting for cluster to become ACTIVE..."
+                    sleep 5
+                  done
+                '''
+            }
+        }
+
+        stage('Get kubeconfig') {
+            steps {
+                sh '''
+                  aws --endpoint-url=$AWS_ENDPOINT_URL eks update-kubeconfig \
+                    --name $EKS_CLUSTER_NAME --region $AWS_REGION
+                '''
+            }
+        }
+
+        stage('Build Docker image') {
+            steps {
+                sh 'docker build -t my-app:latest .'
+            }
+        }
+
+        stage('Load image into k3s') {
+            steps {
+                sh '''
+                  K3S_CONTAINER=$(docker ps --filter "name=k3s" --format "{{.Names}}" | head -n1)
+                  docker save my-app:latest | docker exec -i $K3S_CONTAINER ctr images import -
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'kubectl apply -f k8s/deployment.yaml'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished for branch: ${env.BRANCH_NAME ?: 'prod'}"
+        }
+    }
+}
