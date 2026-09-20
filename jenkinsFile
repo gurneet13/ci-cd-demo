@@ -81,7 +81,8 @@ pipeline {
                 # works on the Floci host itself — rewrite it to the floci
                 # container's hostname so kubectl works from Jenkins too.
                 kubectl config set-cluster arn:aws:eks:$AWS_REGION:000000000000:cluster/$EKS_CLUSTER_NAME \
-                    --server=https://floci:6500
+                    --server=https://host.docker.internal:6500 \
+                    --insecure-skip-tls-verify=true
                 '''
             }
         }
