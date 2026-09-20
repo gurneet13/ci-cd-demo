@@ -74,8 +74,14 @@ pipeline {
         stage('Get kubeconfig') {
             steps {
                 sh '''
-                  aws --endpoint-url=$AWS_ENDPOINT_URL eks update-kubeconfig \
+                aws --endpoint-url=$AWS_ENDPOINT_URL eks update-kubeconfig \
                     --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+                # Floci returns the cluster endpoint as localhost, which only
+                # works on the Floci host itself — rewrite it to the floci
+                # container's hostname so kubectl works from Jenkins too.
+                kubectl config set-cluster arn:aws:eks:$AWS_REGION:000000000000:cluster/$EKS_CLUSTER_NAME \
+                    --server=https://floci:6500
                 '''
             }
         }
