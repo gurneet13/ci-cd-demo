@@ -13,6 +13,7 @@ pipeline {
         S3_BUCKET             = 'my-test-bucket'
         EKS_CLUSTER_NAME      = 'my-cluster'
         PORT                  = '3000'
+        KUBECONFIG            = "${WORKSPACE}/k3s-kubeconfig.yaml"
     }
 
     stages {
@@ -74,15 +75,12 @@ pipeline {
         stage('Get kubeconfig') {
             steps {
                 sh '''
-                aws --endpoint-url=$AWS_ENDPOINT_URL eks update-kubeconfig \
-                    --name $EKS_CLUSTER_NAME --region $AWS_REGION
+                # Extract k3s's own admin kubeconfig directly from the cluster container
+                docker exec floci-eks-$EKS_CLUSTER_NAME cat /etc/rancher/k3s/k3s.yaml > $WORKSPACE/k3s-kubeconfig.yaml
 
-                # Floci returns the cluster endpoint as localhost, which only
-                # works on the Floci host itself — rewrite it to the floci
-                # container's hostname so kubectl works from Jenkins too.
-                kubectl config set-cluster arn:aws:eks:$AWS_REGION:000000000000:cluster/$EKS_CLUSTER_NAME \
-                    --server=https://host.docker.internal:6500 \
-                    --insecure-skip-tls-verify=true
+                # k3s's internal server address won't be reachable from Jenkins,
+                # so rewrite it to the host-published port
+                sed -i 's#server: https://127.0.0.1:6443#server: https://host.docker.internal:6500#' $WORKSPACE/k3s-kubeconfig.yaml
                 '''
             }
         }
