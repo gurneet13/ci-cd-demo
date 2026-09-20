@@ -75,12 +75,13 @@ pipeline {
         stage('Get kubeconfig') {
             steps {
                 sh '''
-                # Extract k3s's own admin kubeconfig directly from the cluster container
                 docker exec floci-eks-$EKS_CLUSTER_NAME cat /etc/rancher/k3s/k3s.yaml > $WORKSPACE/k3s-kubeconfig.yaml
-
-                # k3s's internal server address won't be reachable from Jenkins,
-                # so rewrite it to the host-published port
                 sed -i 's#server: https://127.0.0.1:6443#server: https://host.docker.internal:6500#' $WORKSPACE/k3s-kubeconfig.yaml
+
+                CLUSTER_NAME=$(KUBECONFIG=$WORKSPACE/k3s-kubeconfig.yaml kubectl config view -o jsonpath='{.clusters[0].name}')
+
+                KUBECONFIG=$WORKSPACE/k3s-kubeconfig.yaml kubectl config set-cluster $CLUSTER_NAME \
+                    --insecure-skip-tls-verify=true
                 '''
             }
         }
