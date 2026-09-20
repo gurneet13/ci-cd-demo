@@ -36,18 +36,18 @@ pipeline {
         stage('Create/verify EKS cluster') {
             steps {
                 sh '''
-                  aws --endpoint-url=$AWS_ENDPOINT_URL eks describe-cluster \
+                aws --endpoint-url=$AWS_ENDPOINT_URL eks describe-cluster \
                     --name $EKS_CLUSTER_NAME >/dev/null 2>&1 || \
-                  aws --endpoint-url=$AWS_ENDPOINT_URL eks create-cluster \
+                aws --endpoint-url=$AWS_ENDPOINT_URL eks create-cluster \
                     --name $EKS_CLUSTER_NAME \
                     --role-arn arn:aws:iam::000000000000:role/eks-role \
-                    --resources-vpc-config subnetIds=subnet-1,subnet-2
+                    --resources-vpc-config subnetIds=subnet-default-us-east-1-a,subnet-default-us-east-1-b
 
-                  until aws --endpoint-url=$AWS_ENDPOINT_URL eks describe-cluster \
+                until aws --endpoint-url=$AWS_ENDPOINT_URL eks describe-cluster \
                     --name $EKS_CLUSTER_NAME --query "cluster.status" --output text | grep -q ACTIVE; do
                     echo "waiting for cluster to become ACTIVE..."
                     sleep 5
-                  done
+                done
                 '''
             }
         }
