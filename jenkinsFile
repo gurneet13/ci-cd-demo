@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS26'   // must match exactly what you named it here
+    }
+    
     environment {
         AWS_ENDPOINT_URL      = 'http://floci:4566'
         AWS_REGION            = 'us-east-1'
