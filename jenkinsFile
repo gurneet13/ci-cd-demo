@@ -70,8 +70,7 @@ pipeline {
         stage('Load image into k3s') {
             steps {
                 sh '''
-                  K3S_CONTAINER=$(docker ps --filter "name=k3s" --format "{{.Names}}" | head -n1)
-                  docker save my-app:latest | docker exec -i $K3S_CONTAINER ctr images import -
+                docker save my-app:latest | docker exec -i floci-eks-my-cluster ctr images import -
                 '''
             }
         }
