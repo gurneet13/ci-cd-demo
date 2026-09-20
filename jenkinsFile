@@ -12,6 +12,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = 'test'
         S3_BUCKET             = 'my-test-bucket'
         EKS_CLUSTER_NAME      = 'my-cluster'
+        PORT                  = '3000'
     }
 
     stages {
@@ -37,8 +38,8 @@ pipeline {
                 trap cleanup EXIT
 
                 for i in $(seq 1 30); do
-                    if curl -sf http://localhost:8080/healthz >/dev/null && \
-                       curl -sf http://localhost:8080/ready >/dev/null; then
+                    if curl -sf http://localhost:3000/healthz >/dev/null && \
+                       curl -sf http://localhost:3000/ready >/dev/null; then
                         echo "App is healthy and ready"
                         exit 0
                     fi
